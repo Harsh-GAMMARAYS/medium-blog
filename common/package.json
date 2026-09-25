@@ -1,6 +1,6 @@
 {
   "name": "@gammarays/medium-blog-common",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "Shared schemas and types for Medium Blog project",
   "main": "dist/index.js",
