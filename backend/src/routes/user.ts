@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client/edge'
 import { withAccelerate } from '@prisma/extension-accelerate'
 import { sign} from 'hono/jwt'
 import {hashPassword, verifyPassword} from '../utils/hash'
+import {signupSchema, signinSchema} from '@gammarays/medium-blog-common'
 
 
 //SIGNUP ROUTE - PUBLIC
@@ -18,16 +19,24 @@ userRouter.post('/signup', async (c) => {
   }).$extends(withAccelerate());
   const body = await c.req.json()
 
-  if (!body.email || !body.password) {
-    return c.json({ message: 'Email and password are required' }, 400)
+  const result = signupSchema.safeParse(body);
+
+  if(!result.success) {
+    return c.json({
+      error:{
+        message: "Invalid signup data",
+        details: result.error.issues
+      }
+    }, 400)
   }
+  const { name, email, password } = result.data;
 
   try{
-    const hashedPassword = await hashPassword(body.password)
+    const hashedPassword = await hashPassword(password)
     const user = await prisma.user.create({
       data: {
-        name: body.name,
-        email: body.email,
+        name,
+        email,
         password: hashedPassword
       }
     })
@@ -49,22 +58,31 @@ userRouter.post('/signin', async (c) => {
   }).$extends(withAccelerate());
   const body = await c.req.json()
   
-  if(!body.email || !body.password) {
-    return c.json({error: {message: 'Emaila nd password are required'}}, 400)
+  const result = signinSchema.safeParse(body);
+
+  if(!result.success) {
+    return c.json({
+      error: {
+        message: "Invalid signin data",
+        details: result.error.issues
+      }
+    }, 400)
   }
+
+  const {email, password} = result.data;
 
   try {
     const user = await prisma.user.findUnique({
       where: {
-        email : body.email
+        email
       }
-    })
+    });
 
     if (!user) {
       return c.json({error: {message: 'Invalid credentials'}}, 403)
     }
 
-    const isvalid = await verifyPassword(body.password, user.password)
+    const isvalid = await verifyPassword(password, user.password)
 
     if(!isvalid) {
       return c.json({error: {message: 'Invalid credentials'}}, 403)

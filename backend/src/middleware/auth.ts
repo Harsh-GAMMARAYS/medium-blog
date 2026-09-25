@@ -1,5 +1,5 @@
-import {Context, Next} from "hono";
-import {verify} from "hono/jwt";
+import { Context, Next } from "hono";
+import { verify } from "hono/jwt";
 
 type Bindings = {
     DATABASE_URL: string,
@@ -13,15 +13,17 @@ type Variables = {
 export const authMiddleware = async (c: Context<{ Bindings: Bindings; Variables: Variables }>, next: Next) => {
     const AuthHeader = c.req.header("authorization") || "";
     if (!AuthHeader) {
-        return c.json({error: {
-            message: "Authorization header is missing",
-            code: "AUTHORIZATION_HEADER_MISSING"
-        }}, 401);
+        return c.json({
+            error: {
+                message: "Authorization header is missing",
+                code: "AUTHORIZATION_HEADER_MISSING"
+            }
+        }, 401);
     }
 
     const [scheme, token] = AuthHeader.split(" ");
 
-    if(scheme !== "Bearer" || !token) {
+    if (scheme !== "Bearer" || !token) {
         return c.json({
             error: {
                 message: "Invalid authorization header format",
@@ -44,10 +46,13 @@ export const authMiddleware = async (c: Context<{ Bindings: Bindings; Variables:
         c.set("userId", response.id);
         await next();
     } catch (error) {
+        console.log("JWT verification failed:", error)
+
         return c.json({
             error: {
-                message: "Invalid or Expired token",
+                message: "Invalid or expired token",
+                code: "INVALID_TOKEN"
             }
-        }, 401);
+        }, 401)
     }
 }
